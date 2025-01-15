@@ -6,34 +6,3 @@ chrome.runtime.onInstalled.addListener(() => {
   console.log("Extension Installed!");
 });
 
-chrome.action.onClicked.addListener((tab) => {
-  chrome.scripting.executeScript(
-    {
-      target: { tabId: tab.id },
-      func: getPageHTML,
-    },
-    (results) => {
-      if (results && results[0].result) {
-        console.log("Page URL:", results[0].result.url);
-        console.log("HTML Source:", results[0].result.html);
-      }
-    }
-  );
-  console.log(document.documentElement.outerHTML);
-});
-
-const getPageHTML = function () {
-  return {
-    url: window.location.href,
-    html: document.documentElement.outerHTML,
-  };
-};
-
-// Example: Listen for messages
-// chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-//   if (request.greeting === "hello") {
-//     sendResponse({ farewell: "goodbye" });
-//   }
-// });
-
-// https://offline.shirazu.ac.ir/14031/%3Ccode%3E.zip

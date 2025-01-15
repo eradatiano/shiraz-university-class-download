@@ -1,95 +1,120 @@
 let html;
-const button = document.querySelector(".download-btn");
-const classNumberInput = document.querySelector(".class-number-input");
-const yearInput = document.querySelector(".year-input");
-const semesterInput = document.querySelector(".semester-input");
-const allClasses = {};
+let allClassInfo = {};
+
+const SemesterToNum = function (semester) {
+  const firstInUni = [1575, 1608, 1604];
+  const secondInUni = [1583, 1608, 1605];
+  const semesterUnicode = [];
+  for (let i = 0; i < semester.length; i++) {
+    semesterUnicode.push(semester[i].charCodeAt(0));
+  }
+
+  let f = 1;
+  let s = 1;
+  for (let i = 0; i < semesterUnicode.length; i++) {
+    if (semesterUnicode[i] === firstInUni[i]) f *= 1;
+    else f *= 0;
+    if (semesterUnicode[i] === secondInUni[i]) s *= 1;
+    else s *= 0;
+  }
+
+  if (f === 1) return f;
+  if (s === 1) return s;
+
+  if (f !== 0 && s !== 0) return 0; //new Error("there is some problem in semester");
+};
 
 // Parse the html to extract class code
-const classesIdExtractor = function (html) {
-  const pattern = /(listOdd|listEven).*((\n.*){6}\n\t\t.*r\/(.*)\/')/g;
-  const parsedHTML = [...html.matchAll(pattern)];
-  // add classes_id to allClasses
-  for (let i = 0; i < parsedHTML.length; i++) {
-    const match = parsedHTML[i];
-    allClasses[i + 1] = match[4];
+const classExtractor = function (data) {
+  let year = convertNumbers(data.year.split(" ")[2]);
+  let semester = data.year.split(" ")[0];
+  semester = SemesterToNum(semester);
+
+  // extract class info
+  const classInfo = {
+    title: data.title,
+    year: data.year,
+    teacher: data.teacher,
+    group: data.group,
+  };
+
+  // (listOdd|listEven).*((\n\t\t.{4}(.*).{5}){2}(\n.*){4}\n.*r\/(.*)\/')
+  // (listOdd|listEven).*((\n\t\t.{4}(.*>){0,1}(.*).{5}){2}(\n.*){4}\n.*r\/(.*)\/')
+  // extract sessions code
+  const pattern =
+    /(listOdd|listEven).*((\n\t\t.{4}(.*>){0,1}(.*).{5}){2}(\n.*){4}\n.*r\/(.*)\/')/g;
+  const allSessionsData = [...data.html.matchAll(pattern)];
+  // make a list of all sessions
+  const allSessions = [];
+  let n = 0;
+  for (let i = allSessionsData.length - 1; i >= 0; i--) {
+    n++;
+    const match = allSessionsData[i];
+    const date = match[5];
+    const sessionCode = match[7];
+    const url = makeUrls(sessionCode, year, semester)
+
+    const info = {
+      class: n,
+      url: url,
+      date: date,
+    };
+    allSessions.push(info);
   }
-  return allClasses;
+
+  allClassInfo = {};
+  allClassInfo.url = data.url;
+  allClassInfo["classInfo"] = classInfo;
+  allClassInfo["allSessions"] = allSessions;
+  return allClassInfo;
 };
 
-// control the input and make an array of classes numbers
-const inputController = function () {
-  const year = yearInput.value;
-  const semester = semesterInput.value;
-  // split class number input
-  let requestedClasses = classNumberInput.value.split(" ");
-  requestedClasses.map((classNum) => {
-    if (classNum.includes("-")) {
-      let [a, b] = classNum.split("-");
-      [a, b] = [+a, +b];
-      // prevent basic errors
-      if (
-        typeof a !== "number" ||
-        typeof b !== "number" ||
-        a > b ||
-        b > Object.keys(allClasses).length
-      )
-        return;
-      // add classes num in case of x-y feature
-      for (let i = a; i < b + 1; i++) {
-        requestedClasses.push(i);
-      }
-      output.textContent = `${a} , ${b}`;
-    } else requestedClasses.push(+classNum);
+// convert persian number to english
+const convertNumbers = function (input) {
+  let charUnicode = [];
+  let englishNum = "";
+  for (let i = 0; i < input.length; i++)
+    charUnicode.push(input[i].charCodeAt(0));
+
+  charUnicode = charUnicode.map((code) => {
+    englishNum += code - 1776;
   });
-  // filter out strings from requestedClasses
-  requestedClasses = requestedClasses.filter(
-    (classNum) =>
-      typeof classNum === "number" &&
-      Object.keys(allClasses).includes(classNum.toString())
-  );
-
-  // console.log(requestedClasses); // LOGS:
-  return [requestedClasses, year, semester];
+  return englishNum;
 };
 
-// Make wanted class download urls and call it
-const makeUrls = function (classesArray, year, semester) {
-  for (const classNum of classesArray) {
-    const classId = allClasses[classNum];
-    console.log(classId);
-    // making link
-    let downloadUrl = `https://offline.shirazu.ac.ir/${year}${semester}/${classId}.zip`;
-    console.log(downloadUrl);
-    chrome.tabs.create({ url: downloadUrl });
-  }
-
-}
+// Make wanted class download urls
+const makeUrls = function (classId, year, semester) {
+  let downloadUrl = `https://offline.shirazu.ac.ir/${year}${semester}/${classId}.zip`;
+  return downloadUrl
+};
 
 chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
   chrome.scripting.executeScript(
     {
       target: { tabId: tabs[0].id },
       func: () => {
-        return {
+        const data = {
           url: window.location.href,
           html: document.documentElement.outerHTML,
+          title: document.querySelector("#edCourseName").textContent,
+          group: document.querySelector("#edCourseGroup").textContent,
+          teacher: document
+            .querySelector("#edTchName")
+            .textContent.split("(")[0],
+          year: document.querySelector("#edSemester").textContent,
         };
+        return data;
       },
     },
     (results) => {
-      html = results[0].result.html;
+      data = results[0].result;
       const output = document.getElementById("output");
-      classesIdExtractor(html); // extract classes id
+      classExtractor(data); // extract classes id
+
       if (results && results[0].result) {
       } else {
         output.textContent = "Failed to retrieve information.";
       }
     }
   );
-});
-
-button.addEventListener("click", (e) => {
-  const requestedClasses = inputController();
-  makeUrls(...requestedClasses)
 });
