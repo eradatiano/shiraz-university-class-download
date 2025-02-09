@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Home, Rotate, ShirazIcon } from "./icons";
 import { toPersianNumbers } from "./toPersianNumbers";
+import axios, { AxiosError } from "axios";
 
 // const name = {
 //   info: {
@@ -92,6 +93,7 @@ interface Data {
   group: string | null | undefined;
   teacher: string | undefined;
   year: string | null | undefined;
+  codeLesson: string | null | undefined;
 }
 
 interface AllClassInfo {
@@ -101,12 +103,24 @@ interface AllClassInfo {
     year: string | null | undefined;
     teacher: string | undefined;
     group: string | null | undefined;
+    codeLesson: string | null | undefined;
   };
   allSessions: {
     class: number;
     url: string;
     date: string;
   }[];
+}
+
+interface CourseLink {
+  class: number;
+  url: string;
+  date: string;
+  title: string;
+  year: string;
+  teacher: string;
+  group: string;
+  codeLesson: string;
 }
 
 function App() {
@@ -119,6 +133,7 @@ function App() {
       year: "",
       teacher: "",
       group: "",
+      codeLesson: "",
     },
     allSessions: [],
   };
@@ -182,6 +197,7 @@ function App() {
       year: data.year,
       teacher: data.teacher,
       group: data.group,
+      codeLesson: data.codeLesson,
     };
 
     // (listOdd|listEven).*((\n\t\t.{4}(.*).{5}){2}(\n.*){4}\n.*r\/(.*)\/')
@@ -224,6 +240,7 @@ function App() {
               html: document.documentElement.outerHTML,
               title: document.querySelector("#edCourseName")?.textContent,
               group: document.querySelector("#edCourseGroup")?.textContent,
+              codeLesson: document.querySelector("#edCourseSrl")?.textContent,
               teacher: document
                 .querySelector("#edTchName")
                 ?.textContent?.split("(")[0],
@@ -245,6 +262,52 @@ function App() {
       );
     });
   }, []);
+
+  useEffect(() => {
+    if (
+      value &&
+      value.allSessions.length &&
+      value.classInfo.title &&
+      value.classInfo.year &&
+      value.classInfo.teacher &&
+      value.classInfo.group &&
+      value.classInfo.codeLesson
+    ) {
+      const courseLinks: CourseLink[] = [];
+
+      const title = value.classInfo.title;
+      const year = value.classInfo.year;
+      const teacher = value.classInfo.teacher;
+      const group = value.classInfo.group;
+      const codeLesson = value.classInfo.codeLesson;
+      value.allSessions.map((session) => {
+        const data = {
+          class: session.class,
+          url: session.url,
+          date: session.date,
+          title,
+          year,
+          teacher,
+          group,
+          codeLesson,
+        };
+        courseLinks.push(data);
+      });
+      axios
+        .post("http://localhost:5500/api/lessons/addCourses", {courseLinks})
+        .then((result) => {
+          console.log("اطلاعات با موفقیت ارسال شد:", result.data?.msg);
+        })
+        .catch((error) => {
+          if (error instanceof AxiosError) {
+            console.log(
+              "خطا در ارسال اطلاعات:",
+              error.response?.data.message
+            );
+          }
+        });
+    }
+  }, [value]);
 
   return (
     <main className="relative w-[400px] p-4 flex flex-col items-center justify-center  h-full gap-y-6 rounded-xl outline-4 outline-blue-600 shadow-lg">
