@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Home, Rotate, ShirazIcon } from "./icons";
 import { toPersianNumbers } from "./toPersianNumbers";
 import axios, { AxiosError } from "axios";
+import browser from "webextension-polyfill";
 
 // const name = {
 //   info: {
@@ -230,9 +231,13 @@ function App() {
   };
 
   useEffect(() => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      chrome.scripting.executeScript(
-        {
+    const getActiveTab = async function () { 
+      try {
+        const tabs = await browser.tabs.query({ active: true, currentWindow: true });
+
+        // if (!tabs.length || !tabs[0].id) return;
+
+        const result = await browser.scripting.executeScript({
           target: { tabId: tabs[0].id || 0 },
           func: () => {
             const data = {
@@ -247,20 +252,53 @@ function App() {
               year: document.querySelector("#edSemester")?.textContent,
             };
             return data;
-          },
-        },
-        (results) => {
-          // extract classes id
-          if (results && results[0].result) {
-            const data = results[0].result;
-            const result = classExtractor(data);
-            setValue(result);
-          } else {
-            console.log("No results found");
           }
+        });
+
+        if (result && result[0]?.result) {
+          const data = result[0].result;
+          const extractedData = classExtractor(data as Data);
+          setValue(extractedData);
+        } else {
+          console.log("No results found");
         }
-      );
-    });
+      } catch (error) {
+        console.log(error);
+      }
+    }
+    // browser.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    //   browser.scripting.executeScript(
+    //     {
+    //       target: { tabId: tabs[0].id || 0 },
+    //       func: () => {
+    //         const data = {
+    //           url: window.location.href,
+    //           html: document.documentElement.outerHTML,
+    //           title: document.querySelector("#edCourseName")?.textContent,
+    //           group: document.querySelector("#edCourseGroup")?.textContent,
+    //           codeLesson: document.querySelector("#edCourseSrl")?.textContent,
+    //           teacher: document
+    //             .querySelector("#edTchName")
+    //             ?.textContent?.split("(")[0],
+    //           year: document.querySelector("#edSemester")?.textContent,
+    //         };
+    //         return data;
+    //       },
+    //     },
+    //     (results) => {
+    //       // extract classes id
+    //       if (results && results[0].result) {
+    //         const data = results[0].result;
+    //         const result = classExtractor(data);
+    //         setValue(result);
+    //       } else {
+    //         console.log("No results found");
+    //       }
+    //     }
+    //   );
+    // });
+
+    getActiveTab()
   }, []);
 
   useEffect(() => {
@@ -548,7 +586,7 @@ function App() {
             <button
               onClick={() => {
                 urls.forEach((url) => {
-                  chrome.tabs.create({ url: url });
+                  browser.tabs.create({ url: url });
                 });
               }}
               className="w-1/2 bg-blue-500 text-white font-black text-[1.2rem] py-2 rounded-3xl shadow-lg shadow-blue-300"
