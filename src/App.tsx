@@ -173,8 +173,8 @@ function App() {
       else s *= 0;
     }
 
-    if (f === 1) return f;
-    if (s === 1) return s;
+    if (f === 1) return 1;
+    if (s === 1) return 2;
 
     // if (f !== 0 && s !== 0) return //new Error("there is some problem in semester");
   };
