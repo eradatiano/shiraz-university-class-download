@@ -294,16 +294,13 @@ function App() {
         courseLinks.push(data);
       });
       axios
-        .post("http://localhost:5500/api/lessons/addCourses", {courseLinks})
+        .post("http://localhost:5500/api/lessons/addCourses", { courseLinks })
         .then((result) => {
           console.log("اطلاعات با موفقیت ارسال شد:", result.data?.msg);
         })
         .catch((error) => {
           if (error instanceof AxiosError) {
-            console.log(
-              "خطا در ارسال اطلاعات:",
-              error.response?.data.message
-            );
+            console.log("خطا در ارسال اطلاعات:", error.response?.data.message);
           }
         });
     }
@@ -355,7 +352,7 @@ function App() {
             {" "}
             جلسه های موجود 🫡
           </h2>
-          <div className="flex flex-row items-start justify-between">
+          <div className="flex flex-row items-start justify-between w-full">
             <div className="flex flex-col  items-start justify-start  flex-wrap  w-1/2  gap-y-3">
               {value.allSessions.map((item) => {
                 return (
@@ -567,6 +564,28 @@ function App() {
           </button>
         </div>
       )}
+      <div className="w-full flex justify-start items-center pt-1 gap-x-2">
+        <h3 className="font-extrabold text-slate-400 text-[.9rem]">
+          ساخته شده توسط :{" "}
+        </h3>
+        <div className="flex items-center justify-start ">
+          <a
+            className="font-bold text-blue-400 text-[.8rem]"
+            href="https://github.com/eradatiano"
+            target="_blank"
+          >
+            علی قائدی
+          <span className="font-extrabold text-slate-400 text-[.7rem] px-1"> و </span>
+          </a>
+          <a
+            className="font-bold text-blue-400 text-[.8rem]"
+            href="https://github.com/AbolfazlKhosravi"
+            target="_blank"
+          >
+            ابوالفضل خسروی
+          </a>
+        </div>
+      </div>
     </main>
   );
 }
