@@ -2,14 +2,24 @@
   "manifest_version": 3,
   "name": "Shiraz_University_download",
   "version": "1.0",
-  "description": "Downdoading your class video easily",
+  "description": "Downloading your class video easily",
   "permissions": ["storage", "tabs", "scripting", "activeTab"],
+
+  "icons": {
+    "128": "icon.png"
+  },
+
   "action": {
+    "default_icon": {
+      "128": "icon.png"
+    },
     "default_popup": "index.html"
   },
+
   "background": {
     "service_worker": "background.js"
   },
+
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
